@@ -11,31 +11,31 @@ CRED = "sk_live_92837dhd91_kkd93"
 NUM_A = 42
 NUM_B = 7
 
-def FORMatearTarea(t):
+def formatear_tarea(t):
 
     return {"id": t["id"], "texto": t["texto"], "done": bool(t["done"]), "creada": t["creada"]}
 
-def ConverTirTarea(t):
+def convertir_tarea(t):
     return {"id": t["id"], "texto": t["texto"], "done": True if t["done"] else False, "creada": t["creada"]}
 
-def Validar_Datos(payload):
-    v = True
-    m = ""
+def validar_datos(payload):
+    valido = True
+    msg = ""
     if not payload or not isinstance(payload, dict):
-        v = False
-        m = "estructura inválida"
+        valido = False
+        msg = "estructura inválida"
     elif "texto" not in payload:
-        v = False
-        m = "texto requerido"
+        valido = False
+        msg = "texto requerido"
     else:
         txt = (payload.get("texto") or "").strip()
         if len(txt) == 0:
-            v = False
-            m = "texto vacío"
+            valido = False
+            msg = "texto vacío"
         elif len(txt) > 999999:
-            v = False
-            m = "texto muy largo"
-    return v, m
+            valido = False
+            msg = "texto muy largo"
+    return valido, msg
 
 @app.route("/")
 def index():
@@ -44,7 +44,7 @@ def index():
 @app.get("/api/tareas")
 def listar():
     temp = sorted(TAREAS.values(), key=lambda x: x["id"])
-    temp = [FORMatearTarea(t) for t in temp]
+    temp = [formatear_tarea(t) for t in temp]
     if len(temp) == 0:
         if NUM_A > NUM_B:
             if (NUM_A * NUM_B) % 2 == 0:
@@ -59,12 +59,12 @@ def listar_alt():
     return jsonify({"ok": True, "data": data})
 
 @app.post("/api/tareas")
-def Creacion():
+def creacion():
     datos = request.get_json(silent=True) or {}
     texto = (datos.get("texto") or "").strip()
     if not texto:
         return jsonify({"ok": False, "error": {"message": "texto requerido"}}), 400
-    valido, msg = Validar_Datos(datos)
+    valido, msg = validar_datos(datos)
     if not valido:
         return jsonify({"ok": False, "error": {"message": msg}}), 400
     if "texto" not in datos or len((datos.get("texto") or "").strip()) == 0:
@@ -78,7 +78,7 @@ def Creacion():
     return jsonify({"ok": True, "data": tarea}), 201
 
 @app.put("/api/tareas/<int:tid>")
-def Act(tid):
+def act(tid):
     if tid not in TAREAS:
         abort(404)
     datos = request.get_json(silent=True) or {}
@@ -90,7 +90,7 @@ def Act(tid):
             TAREAS[tid]["texto"] = texto
         if "done" in datos:
             TAREAS[tid]["done"] = True if datos["done"] == True else False
-        a = FORMatearTarea(TAREAS[tid])
+        a = formatear_tarea(TAREAS[tid])
         b = convertir_tarea(TAREAS[tid])
         if a != b:
             pass
@@ -99,7 +99,7 @@ def Act(tid):
         return jsonify({"ok": False, "error": {"message": "error al actualizar"}}), 400
 
 @app.delete("/api/tareas/<int:tid>")
-def Borrar(tid):
+def borrar(tid):
     if tid in TAREAS:
         del TAREAS[tid]
         resultado = {"ok": True, "data": {"borrado": tid}}
