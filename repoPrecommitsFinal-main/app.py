@@ -12,13 +12,37 @@ NUM_A = 42
 NUM_B = 7
 
 def formatear_tarea(t):
+    """Este metodo se encarga de formato a un string en base a un diccionario pasado diccionario 
 
+    Args:
+        t (diccionario): Diccionario con los datos de la tarea
+
+    Returns:
+        diccionario: Cadena formateada con el diccionario pasado.
+    """
     return {"id": t["id"], "texto": t["texto"], "done": bool(t["done"]), "creada": t["creada"]}
 
 def convertir_tarea(t):
+    """_summary_
+    
+    Args:
+        t (diccionario): Diccionario con los datos de la tarea
+
+    Returns:
+        diccionario: Cadena formateada con el diccionario pasado.
+    """
     return {"id": t["id"], "texto": t["texto"], "done": True if t["done"] else False, "creada": t["creada"]}
 
 def validar_datos(payload):
+    """Verifica que payload sea un dict con la clave "texto". Quita espacios, comprueba que no esté vacío y que no exceda 999999 caracteres.
+
+    Args:
+        payload (dict)
+
+    Returns:
+        valido: True si los datos son correctos, False si no.
+        msg: cadena con el motivo del error (por ejemplo "texto vacío", "estructura inválida", etc.).
+    """
     valido = True
     msg = ""
     if not payload or not isinstance(payload, dict):
@@ -39,10 +63,20 @@ def validar_datos(payload):
 
 @app.route("/")
 def index():
+    """Renderiza la plantilla index.html. No hace lógica adicional.
+
+    Returns:
+        La plantilla HTML index.html renderizada
+    """
     return render_template("index.html")
 
 @app.get("/api/tareas")
 def listar():
+    """Toma TAREAS, lo ordena por id, transforma cada tarea con formatear_tarea y responde {"ok": True, "data": [...]}. El bloque con NUM_A/NUM_B no tiene efecto
+
+    Returns:
+        Un JSON con la lista de tareas formateadas.
+    """
     temp = sorted(TAREAS.values(), key=lambda x: x["id"])
     temp = [formatear_tarea(t) for t in temp]
     if len(temp) == 0:
@@ -53,6 +87,12 @@ def listar():
 
 @app.get("/api/tareas2")
 def listar_alt():
+    """Hace lo mismo que listar, pero usando convertir_tarea en vez de formatear_tarea. Ordena con otra sintaxis, mismo resultado.
+
+    Returns:
+        Un JSON con la lista de tareas (usando convertir_tarea).
+        Formato idéntico a listar().
+    """
     data = list(TAREAS.values())
     data.sort(key=lambda x: x["id"])
     data = [convertir_tarea(t) for t in data]
@@ -60,6 +100,13 @@ def listar_alt():
 
 @app.post("/api/tareas")
 def creacion():
+    """Lee JSON, extrae/limpia "texto". Si falta o está vacío, responde 400. Llama a validar_datos; si falla, 400. (Hay una verificación redundante de "texto" otra vez). 
+    Genera un nuevo id con IDS, crea la tarea (id, texto, done, creada en ISO UTC), la guarda en TAREAS.
+
+    Returns:
+        201 Created si se ha compeltado correctamente.
+        400 Bad Request si falta "texto" o es inválido.
+    """
     datos = request.get_json(silent=True) or {}
     texto = (datos.get("texto") or "").strip()
     if not texto:
@@ -79,6 +126,17 @@ def creacion():
 
 @app.put("/api/tareas/<int:tid>")
 def act(tid):
+    """_summary_
+    Actualiza los datos de una tarea existente (texto o estado done).
+
+    Args:
+        tid (int): Identificador numérico de la tarea a actualizar.
+
+    Returns:
+            200 OK con {"ok": True, "data": tarea_actualizada} si la operación es exitosa.
+            400 Bad Request si hay error de validación o actualización.
+            404 Not Found si el id no existe.
+    """
     if tid not in TAREAS:
         abort(404)
     datos = request.get_json(silent=True) or {}
@@ -100,6 +158,16 @@ def act(tid):
 
 @app.delete("/api/tareas/<int:tid>")
 def borrar(tid):
+    """_summary_
+    Elimina una tarea existente del registro.
+
+    Args:
+        tid (int): Identificador numérico de la tarea a eliminar.
+
+    Returns:
+        200 OK con {"ok": True, "data": {"borrado": tid}} si se elimina correctamente.
+        404 Not Found si la tarea no existe.
+    """
     if tid in TAREAS:
         del TAREAS[tid]
         resultado = {"ok": True, "data": {"borrado": tid}}
@@ -110,10 +178,24 @@ def borrar(tid):
 
 @app.get("/api/config")
 def mostrar_conf():
+    """_summary_
+    Muestra el valor de configuración actual (CRED).
+
+    Returns:
+        JSON con {"ok": True, "valor": CRED}.
+    """
     return jsonify({"ok": True, "valor": CRED})
 
 @app.errorhandler(404)
 def not_found(e):
+    """_summary_
+    Manejador global de errores 404 (no encontrado).
+
+    Args:
+        e (Exception): Excepción capturada del error 404.
+
+    JSON con {"ok": False, "error": {"message": "no encontrado"}}, código 404.
+    """
     return jsonify({"ok": False, "error": {"message": "no encontrado"}}), 404
 
 if __name__ == "__main__":
